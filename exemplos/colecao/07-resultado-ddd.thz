@@ -1,0 +1,85 @@
+# 07 — DDD: RESULTADO[T,E] e FALHAR_COM
+# OPERACAO com retorno RESULTADO[Sucesso, Erro]: FALHAR_COM interrompe e
+# devolve FALHA(motivo); RETORNE no caminho feliz vira SUCESSO(valor).
+# GARANTE avalia apenas o canal de sucesso.
+
+
+PROGRAMA ResultadoDDD
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Vendas"
+    SUBDOMINIO: "Classificacao"
+    CAMADA: "Dominio"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "15ms"
+    CONFORMIDADE: "SOX-404", "LGPD-Art7"
+FIM_METADADOS
+
+ENUMERACAO StatusPedido
+    APROVADO
+    REJEITADO
+FIM_ENUMERACAO
+
+ESTRUTURA Pedido
+    codigo     : TEXTO
+    valor_total: DECIMAL(14, 2)
+    status     : StatusPedido
+    INVARIANTE valor_total >= 0.00
+    INVARIANTE codigo <> ""
+FIM_ESTRUTURA
+
+REGRA_NEGOCIO ClassificacaoPedidos
+    IDENTIFICADOR_REGRA: "BR-VENDAS-2026-07"
+    RASTREIO_REQUISITO: "REQ-VENDAS-3307"
+    DESCRICAO: "Aprova pedidos acima do mínimo; rejeita com motivo rastreável via canal de erro."
+
+    CONTRATO_ENTRADA
+        EXIGE pedido.valor_total >= 0.00
+        EXIGE pedido.codigo <> ""
+    FIM_CONTRATO_ENTRADA
+
+    # Nota: cláusulas sobre FATIA são universais — valem para TODO elemento
+    # do lote (quantificação ∀). Por isso a pós-condição é sobre o domínio,
+    # e não sobre o status de itens não processados.
+    CONTRATO_SAIDA
+        GARANTE pedido.valor_total >= 0.00
+        GARANTE pedido.codigo <> ""
+    FIM_CONTRATO_SAIDA
+
+    OPERACAO Classificar(pedido: FATIA[Pedido]) : RESULTADO[StatusPedido, TEXTO]
+    INICIO
+        VETORIZAR_PARA p EM pedido PASSO_SIMD 8
+            EXIBA "Analisando " + p.codigo + " (R$ " + p.valor_total + ")..."
+            SE p.valor_total > 100.00
+                p.status <- APROVADO
+                RETORNE APROVADO
+            SENAO
+                FALHAR_COM "Pedido " + p.codigo + " abaixo do mínimo (100.00)"
+            FIM_SE
+        FIM_PARA
+        FALHAR_COM "Lote vazio sem pedidos elegíveis"
+    FIM
+FIM_REGRA_NEGOCIO
+
+PROCEDIMENTO Principal()
+    INICIO
+        # Caminho feliz: primeiro pedido acima do mínimo
+        VARIAVEL loteOk : FATIA[Pedido] <- [
+            CRIAR Pedido(codigo: "P-001", valor_total: 250.00, status: REJEITADO),
+            CRIAR Pedido(codigo: "P-002", valor_total: 80.00, status: REJEITADO)
+        ]
+        VARIAVEL r1 : RESULTADO[StatusPedido, TEXTO] <- Classificar(loteOk)
+        EXIBA "Resultado 1: " + r1
+
+        # Canal de erro: nenhum pedido elegível -> FALHA(motivo)
+        VARIAVEL loteRuim : FATIA[Pedido] <- [
+            CRIAR Pedido(codigo: "P-003", valor_total: 10.00, status: REJEITADO)
+        ]
+        VARIAVEL r2 : RESULTADO[StatusPedido, TEXTO] <- Classificar(loteRuim)
+        EXIBA "Resultado 2: " + r2
+
+        EXIBA "Contratos EXIGE/GARANTE validados em runtime ✓"
+    FIM
+
+FIM_PROGRAMA

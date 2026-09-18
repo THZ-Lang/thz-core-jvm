@@ -1,0 +1,59 @@
+# 03 — Enumerações de domínio
+# ENUMERACAO cria vocabulário fechado; membros viram valores globais tipados.
+# INVARIANTE garante que o domínio protege sua própria consistência.
+
+
+PROGRAMA EnumeracoesDemo
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Enumeracoes"
+    CAMADA: "Dominio"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "10ms"
+    CONFORMIDADE: "DEMO"
+FIM_METADADOS
+
+ENUMERACAO Status
+    RASCUNHO
+    ATIVO
+    ARQUIVADO
+FIM_ENUMERACAO
+
+ENUMERACAO Prioridade
+    BAIXA
+    MEDIA
+    ALTA
+    CRITICA
+FIM_ENUMERACAO
+
+ESTRUTURA Tarefa
+    titulo     : TEXTO
+    status     : Status
+    prioridade : Prioridade
+    INVARIANTE titulo <> ""
+FIM_ESTRUTURA
+
+PROCEDIMENTO Descrever(t : Tarefa)
+    INICIO
+        EXIBA "- " + t.titulo + " [" + t.status + "/" + t.prioridade + "]"
+        SE t.prioridade = CRITICA E t.status <> ARQUIVADO
+            EXIBA "  ! Requer atenção imediata"
+        FIM_SE
+    FIM
+
+PROCEDIMENTO Principal()
+    INICIO
+        VARIAVEL t1 : Tarefa <- CRIAR Tarefa(titulo: "Escrever docs", status: RASCUNHO, prioridade: MEDIA)
+        VARIAVEL t2 : Tarefa <- CRIAR Tarefa(titulo: "Corrigir bug prod", status: ATIVO, prioridade: CRITICA)
+        VARIAVEL t3 : Tarefa <- CRIAR Tarefa(titulo: "Release v2.3", status: ATIVO, prioridade: ALTA)
+        Descrever(t1)
+        Descrever(t2)
+        Descrever(t3)
+        t2.status <- ARQUIVADO
+        EXIBA "Após arquivar:"
+        Descrever(t2)
+    FIM
+
+FIM_PROGRAMA

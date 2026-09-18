@@ -1,0 +1,78 @@
+# 08 — Processamento vetorizado (SoA/SIMD)
+# VETORIZAR_PARA ... PASSO_SIMD 8 marca o laço para vetoriação AVX2/AVX-512.
+# LAYOUT_COLUNAR armazena a estrutura como Structure-of-Arrays.
+# Nota: campos UUID não são populáveis via CRIAR literal — veja faturamento.thz
+# canônico, cujo lote é injetado pelo motor (LOTE de demo na CLI).
+
+
+PROGRAMA VetorizadoSimd
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Logistica"
+    SUBDOMINIO: "FaturamentoLote"
+    CAMADA: "Dominio"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "15ms"
+    CONFORMIDADE: "SOX-404"
+FIM_METADADOS
+
+ESTRUTURA ItemFatura LAYOUT_COLUNAR
+    codigo_produto     : TEXTO
+    quantidade         : NATURAL32
+    valor_unitario     : DECIMAL(12, 4)
+    aliquota_imposto   : DECIMAL(5, 2)
+    valor_total_liquido: DECIMAL(14, 4)
+
+    INVARIANTE valor_total_liquido >= 0.0000
+FIM_ESTRUTURA
+
+REGRA_NEGOCIO CalculoTributarioLote
+    IDENTIFICADOR_REGRA: "BR-FISCAL-2026-08"
+    RASTREIO_REQUISITO: "REQ-FISCAL-9102"
+    DESCRICAO: "Calcula bruto + imposto por item em lote vetorizado e acumula tributos."
+
+    CONTRATO_ENTRADA
+        EXIGE itens.quantidade > 0
+        EXIGE itens.valor_unitario >= 0.0000
+        EXIGE itens.aliquota_imposto >= 0.00
+    FIM_CONTRATO_ENTRADA
+
+    CONTRATO_SAIDA
+        GARANTE itens.valor_total_liquido >= 0.0000
+    FIM_CONTRATO_SAIDA
+
+    OPERACAO ProcessarVetorizado(itens: FATIA[ItemFatura]) : DECIMAL(18, 4)
+    INICIO
+        VARIAVEL acumulador_tributos : DECIMAL(18, 4) <- 0.0000
+        VETORIZAR_PARA item EM itens PASSO_SIMD 8
+            VARIAVEL bruto          : DECIMAL(18, 4) <- item.quantidade * item.valor_unitario
+            VARIAVEL fator_aliquota : DECIMAL(8, 6) <- item.aliquota_imposto / 100
+            VARIAVEL imposto_item   : DECIMAL(18, 4) <- bruto * fator_aliquota
+
+            item.valor_total_liquido <- bruto + imposto_item
+            acumulador_tributos <- acumulador_tributos + imposto_item
+
+            EXIBA "[ITEM " + item.codigo_produto + "] Qtd: " + item.quantidade
+                + " | Unit: R$ " + item.valor_unitario
+                + " | Total Liq: R$ " + item.valor_total_liquido
+        FIM_PARA
+        RETORNE acumulador_tributos
+    FIM
+FIM_REGRA_NEGOCIO
+
+PROCEDIMENTO Principal()
+    INICIO
+        # Lote autossuficiente (na CLI canônica, o motor injeta LOTE de demo)
+        VARIAVEL lote : FATIA[ItemFatura] <- [
+            CRIAR ItemFatura(codigo_produto: "PROD-SKU-901", quantidade: 10, valor_unitario: 150.5000, aliquota_imposto: 18.00, valor_total_liquido: 0.0000),
+            CRIAR ItemFatura(codigo_produto: "PROD-SKU-902", quantidade: 5, valor_unitario: 320.0000, aliquota_imposto: 12.00, valor_total_liquido: 0.0000),
+            CRIAR ItemFatura(codigo_produto: "PROD-SKU-903", quantidade: 2, valor_unitario: 99.9000, aliquota_imposto: 7.50, valor_total_liquido: 0.0000)
+        ]
+
+        VARIAVEL total : DECIMAL(18, 4) <- ProcessarVetorizado(lote)
+        EXIBA "----------------------------------------------"
+        EXIBA "[RESULTADO] Tributos acumulados: " + total
+    FIM
+
+FIM_PROGRAMA

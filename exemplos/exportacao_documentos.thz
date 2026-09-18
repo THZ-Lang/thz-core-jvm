@@ -1,0 +1,123 @@
+PROGRAMA DemonstracaoExportacaoDocumentos
+
+# ==============================================================================
+# METADADOS DE ARQUITETURA
+# ==============================================================================
+METADADOS_ARQUITETURA
+    DOMINIO: "GestaoFaturamento"
+    SUBDOMINIO: "EmissaoDocumentos"
+    CAMADA: "Servico"
+    VERSAO: "2.3.0"
+    AUTOR: "THZ-LANG Engine"
+    SLO_LATENCIA_MAXIMA: "50ms"
+    CONFORMIDADE: "SOX", "ISO-42010"
+FIM_METADADOS
+
+# ==============================================================================
+# ESTRUTURAS DE DOMÍNIO
+# ==============================================================================
+ESTRUTURA ItemFatura
+    codigoSku: TEXTO
+    descricao: TEXTO
+    quantidade: INTEIRO32
+    precoUnitario: DECIMAL(10, 2)
+    valorTotal: DECIMAL(12, 2)
+FIM_ESTRUTURA
+
+ESTRUTURA FaturaCorporativa
+    titulo: TEXTO
+    numeroFatura: TEXTO
+    clienteRazaoSocial: TEXTO
+    cnpj: TEXTO
+    dataEmissao: TEXTO
+    valorTotalFatura: DECIMAL(14, 2)
+    itensFaturados: FATIA[ItemFatura]
+FIM_ESTRUTURA
+
+# ==============================================================================
+# REGRA DE NEGÓCIO COM CONTRATOS
+# ==============================================================================
+REGRA_NEGOCIO GestaoDocumentosFatura
+    IDENTIFICADOR_REGRA: "RN-DOC-001"
+    RASTREIO_REQUISITO: "REQ-REL-010"
+    DESCRICAO: "Gera relatórios oficiais de fatura em PDF, Excel (XLSX) e Word (DOCX)"
+
+    CONTRATO_ENTRADA
+        EXIGE TEXTO.comprimento(fatura.numeroFatura) > 0
+        EXIGE fatura.valorTotalFatura > 0.00
+    FIM_CONTRATO_ENTRADA
+
+    CONTRATO_SAIDA
+        GARANTE TEXTO.comprimento(RESULTADO) > 0
+    FIM_CONTRATO_SAIDA
+
+    OPERACAO EmitirDocumentos(fatura: FaturaCorporativa): TEXTO
+    INICIO
+        VARIAVEL caminhoPdf : TEXTO <- "fatura_" + fatura.numeroFatura + ".pdf"
+        VARIAVEL caminhoXlsx : TEXTO <- "fatura_" + fatura.numeroFatura + ".xlsx"
+        VARIAVEL caminhoDocx : TEXTO <- "fatura_" + fatura.numeroFatura + ".docx"
+
+        # 1. Exporta Relatório Oficial em PDF (com tabelas, paginação e estilos corporativos)
+        DOCUMENTO.exportarPdf(caminhoPdf, "Fatura Oficial de Prestação de Serviços — " + fatura.numeroFatura, fatura)
+
+        # 2. Exporta Planilha de Dados em Excel (XLSX com colunas dimensionadas e estilos de dados)
+        DOCUMENTO.exportarXlsx(caminhoXlsx, "Fatura e Itens", fatura)
+
+        # 3. Exporta Documento em Word (DOCX com seções, ficha cadastral e tabelas)
+        DOCUMENTO.exportarDocx(caminhoDocx, "Contrato e Fatura — " + fatura.clienteRazaoSocial, fatura)
+
+        RETORNE "Documentos emitidos com sucesso: [PDF, XLSX, DOCX] para " + fatura.numeroFatura
+    FIM
+FIM_REGRA_NEGOCIO
+
+# ==============================================================================
+# PROCEDIMENTO PRINCIPAL
+# ==============================================================================
+PROCEDIMENTO Principal()
+INICIO
+    VARIAVEL i1 : ItemFatura <- CRIAR ItemFatura(
+        codigoSku: "SRV-RACK-01",
+        descricao: "Servidor Rack 2U Dual Xeon 64GB ECC",
+        quantidade: 2,
+        precoUnitario: 14500.00,
+        valorTotal: 29000.00
+    )
+
+    VARIAVEL i2 : ItemFatura <- CRIAR ItemFatura(
+        codigoSku: "SWT-CORE-10G",
+        descricao: "Switch Gerenciável L3 48 Portas PoE+",
+        quantidade: 1,
+        precoUnitario: 8200.00,
+        valorTotal: 8200.00
+    )
+
+    VARIAVEL i3 : ItemFatura <- CRIAR ItemFatura(
+        codigoSku: "LIC-THZ-ENT",
+        descricao: "Subscrição THZ-LANG Enterprise Engine 1 Ano",
+        quantidade: 10,
+        precoUnitario: 1200.00,
+        valorTotal: 12000.00
+    )
+
+    VARIAVEL fatura : FaturaCorporativa <- CRIAR FaturaCorporativa(
+        titulo: "Fatura Corporativa de Tecnologia — THZ-LANG",
+        numeroFatura: "FAT-2026-0089",
+        clienteRazaoSocial: "Banco de Investimentos Alpha S.A.",
+        cnpj: "12.345.678/0001-90",
+        dataEmissao: "23/08/2026",
+        valorTotalFatura: 49200.00,
+        itensFaturados: [i1, i2, i3]
+    )
+
+    EXIBA "=========================================================="
+    EXIBA "  THZ-LANG — Emissão de Documentos (PDF / XLSX / DOCX)"
+    EXIBA "=========================================================="
+    EXIBA "Fatura: " + fatura.numeroFatura + " | Cliente: " + fatura.clienteRazaoSocial
+    EXIBA "Valor Total: R$ " + fatura.valorTotalFatura
+
+    VARIAVEL status : TEXTO <- GestaoDocumentosFatura.EmitirDocumentos(fatura)
+    EXIBA status
+    EXIBA "=========================================================="
+FIM
+
+FIM_PROGRAMA

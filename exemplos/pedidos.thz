@@ -1,0 +1,63 @@
+
+# ============================================================
+# Exemplo canônico v2.2 — Expressividade DDD:
+# ENUMERACAO, INVARIANTE, RESULTADO[T,E] e FALHAR_COM.
+# ============================================================
+
+PROGRAMA GestaoPedidos
+
+METADADOS_ARQUITETURA
+    DOMINIO: "VendasEFaturamento"
+    SUBDOMINIO: "ClassificacaoPedidos"
+    CAMADA: "Dominio"
+    VERSAO: "2.2.0"
+    AUTOR: "Lucas Thomaz"
+    SLO_LATENCIA_MAXIMA: "15ms"
+    CONFORMIDADE: "SOX-404", "LGPD-Art7"
+FIM_METADADOS
+
+ENUMERACAO StatusPedido
+    PENDENTE
+    APROVADO
+    REJEITADO
+FIM_ENUMERACAO
+
+ESTRUTURA Pedido
+    codigo        : TEXTO
+    valor_total   : DECIMAL(14, 2)
+    status        : StatusPedido
+
+    # Arquitetura Viva: o domínio protege a si mesmo.
+    INVARIANTE valor_total >= 0.00
+FIM_ESTRUTURA
+
+REGRA_NEGOCIO ClassificacaoPedidos
+    IDENTIFICADOR_REGRA: "BR-VENDAS-2026-01"
+    RASTREIO_REQUISITO: "REQ-VENDAS-3301"
+    DESCRICAO: "Aprova pedidos acima do mínimo; rejeita os demais com motivo rastreável."
+
+    CONTRATO_ENTRADA
+        EXIGE pedido.valor_total >= 0.00
+    FIM_CONTRATO_ENTRADA
+
+    CONTRATO_SAIDA
+        GARANTE pedido.status <> REJEITADO
+    FIM_CONTRATO_SAIDA
+
+    OPERACAO Classificar(pedido: FATIA[Pedido]) : RESULTADO[StatusPedido, TEXTO]
+    INICIO
+        VARIAVEL primeiro : DECIMAL(14, 2) <- 0.00
+        VETORIZAR_PARA p EM pedido PASSO_SIMD 8
+            primeiro <- p.valor_total
+            SE primeiro > 100.00
+                p.status <- APROVADO
+                RETORNE APROVADO
+            SENAO
+                FALHAR_COM "Valor abaixo do mínimo de aprovacao: 100.00"
+            FIM_SE
+        FIM_PARA
+        RETORNE PENDENTE
+    FIM
+FIM_REGRA_NEGOCIO
+
+FIM_PROGRAMA

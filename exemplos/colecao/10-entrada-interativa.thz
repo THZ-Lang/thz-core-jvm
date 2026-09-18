@@ -1,0 +1,43 @@
+# 10 — Entrada interativa (LER)
+# LER destino lê uma linha da entrada padrão e atribui à variável.
+# CLI:      echo "Maria" | java --enable-preview -jar thz-jvm25-2.3.0.jar run exemplos\colecao\10-entrada-interativa.thz
+# GUI:      abre diálogo automaticamente ao executar (▶ Executar)
+# REPL:     lê do teclado durante a sessão
+
+
+PROGRAMA EntradaInterativa
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Interacao"
+    CAMADA: "Aplicacao"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "interativo"
+    CONFORMIDADE: "LGPD-Art7"
+FIM_METADADOS
+
+PROCEDIMENTO Principal()
+    INICIO
+        EXIBA "Qual é o seu nome?"
+        VARIAVEL nome : TEXTO <- ""
+        LER nome
+
+        SE nome = ""
+            nome <- "visitante"
+        FIM_SE
+
+        VARIAVEL saudacao : TEXTO <- TEXTO.juntar(["Bem-vindo(a),", nome, "!"], " ")
+        EXIBA saudacao
+
+        EXIBA "Digite um número inteiro N para a contagem:"
+        VARIAVEL limite : NATURAL32 <- 0
+        LER limite
+
+        PARA i DE 1 ATE limite
+            EXIBA "Contagem " + i + "/" + limite
+        FIM_PARA
+        EXIBA "Pronto!"
+    FIM
+
+FIM_PROGRAMA

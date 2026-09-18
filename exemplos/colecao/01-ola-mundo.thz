@@ -1,0 +1,23 @@
+# 01 — Olá Mundo
+# Objetivo: programa mínimo executável. Mostra pragma, PROGRAMA, METADADOS e PROCEDIMENTO.
+
+
+PROGRAMA OlaMundo
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Iniciante"
+    CAMADA: "Aplicacao"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "10ms"
+    CONFORMIDADE: "DEMO"
+FIM_METADADOS
+
+PROCEDIMENTO Principal()
+    INICIO
+        EXIBA "Olá, THZ-LANG!"
+        EXIBA "Versão 2.3 — motor JVM25"
+    FIM
+
+FIM_PROGRAMA

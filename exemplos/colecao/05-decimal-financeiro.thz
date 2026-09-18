@@ -1,0 +1,60 @@
+# 05 — Decimais financeiros (BigInt escalado)
+# DECIMAL(p, s) usa inteiros escalados (ISO/IEC 10967) — nunca IEEE 754.
+# MATEMATICA.arredondar usa half-even (banqueiro), padrão de mercado.
+
+
+PROGRAMA DecimalFinanceiro
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Financeiro"
+    CAMADA: "Dominio"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "10ms"
+    CONFORMIDADE: "SOX-404"
+FIM_METADADOS
+
+ESTRUTURA Item
+    descricao : TEXTO
+    quantidade: NATURAL32
+    unitario  : DECIMAL(12, 4)
+    INVARIANTE quantidade > 0
+    INVARIANTE unitario >= 0.0000
+FIM_ESTRUTURA
+
+PROCEDIMENTO Principal()
+    INICIO
+        # Precisão exata: 0.1 + 0.2 = 0.3000 (não 0.30000000000000004)
+        VARIAVEL a : DECIMAL(10, 4) <- 0.1000
+        VARIAVEL b : DECIMAL(10, 4) <- 0.2000
+        EXIBA "0.1 + 0.2 = " + (a + b)
+
+        # Multiplicação e escala
+        VARIAVEL preco : DECIMAL(12, 4) <- 150.5000
+        VARIAVEL qtd   : NATURAL32 <- 3
+        VARIAVEL bruto : DECIMAL(14, 4) <- qtd * preco
+        EXIBA "3 x 150.5000 = " + bruto
+
+        # Arredondamento bancário half-even:
+        #   1.005 -> 1.00 (dígito 5, anterior par)
+        #   1.015 -> 1.02 (dígito 5, anterior ímpar arredonda p/ cima)
+        EXIBA "1.005 -> " + MATEMATICA.arredondar(1.005, 2)
+        EXIBA "1.015 -> " + MATEMATICA.arredondar(1.015, 2)
+
+        # Desconto percentual com divisão exata
+        VARIAVEL desconto : DECIMAL(6, 4) <- 12.5000
+        VARIAVEL fator    : DECIMAL(8, 6) <- desconto / 100
+        VARIAVEL liquido  : DECIMAL(14, 4) <- bruto - (bruto * fator)
+        EXIBA "Líquido com 12,5% off: " + liquido
+
+        # Utilitários numéricos
+        VARIAVEL negativo : DECIMAL(8, 2) <- 0.00 - 42.75
+        EXIBA "abs(-42.75) = " + MATEMATICA.abs(negativo)
+        EXIBA "min(7, 3) = " + MATEMATICA.min(7, 3)
+        EXIBA "max(7, 3) = " + MATEMATICA.max(7, 3)
+        EXIBA "raiz(81) = " + MATEMATICA.raiz(81)
+        EXIBA "potencia(5, 4) = " + MATEMATICA.potencia(5, 4)
+    FIM
+
+FIM_PROGRAMA

@@ -1,0 +1,60 @@
+# 04 — Controle de fluxo
+# SE/SENAO, ENQUANTO e PARA ... DE ... ATE [PASSO].
+# Convenção: '=' compara, '<-' atribui; conectivos são verbais (E, OU, NAO).
+
+
+PROGRAMA ControleFluxo
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Fluxo"
+    CAMADA: "Aplicacao"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "10ms"
+    CONFORMIDADE: "DEMO"
+FIM_METADADOS
+
+PROCEDIMENTO Classificar(nota: NATURAL32)
+    INICIO
+        SE nota >= 90
+            EXIBA nota + " -> Excelente"
+        SENAO
+            SE nota >= 70
+                EXIBA nota + " -> Bom"
+            SENAO
+                EXIBA nota + " -> Recuperacao"
+            FIM_SE
+        FIM_SE
+    FIM
+
+PROCEDIMENTO Principal()
+    INICIO
+        # SE / SENAO aninhado
+        Classificar(95)
+        Classificar(75)
+        Classificar(40)
+
+        # ENQUANTO com condição composta (E)
+        VARIAVEL n : NATURAL32 <- 1
+        ENQUANTO n <= 8 E NAO (n = 7)
+            EXIBA "2^" + n + " = " + MATEMATICA.potencia(2, n)
+            n <- n + 1
+        FIM_ENQUANTO
+
+        # PARA com intervalo e passo
+        PARA i DE 10 ATE 30 PASSO 10
+            EXIBA "Tick " + i
+        FIM_PARA
+
+        # Tabuada completa
+        PARA linha DE 1 ATE 3
+            VARIAVEL msg : TEXTO <- ""
+            PARA col DE 1 ATE 3
+                msg <- msg + (linha * col) + "  "
+            FIM_PARA
+            EXIBA msg
+        FIM_PARA
+    FIM
+
+FIM_PROGRAMA

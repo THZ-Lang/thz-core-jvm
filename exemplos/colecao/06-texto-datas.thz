@@ -1,0 +1,48 @@
+# 06 — Biblioteca padrão: TEXTO e DATA
+# Funções nativas TEXTO.* e DATA.* disponíveis em qualquer contexto.
+
+
+PROGRAMA TextoEDatas
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Stdlib"
+    CAMADA: "Aplicacao"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "10ms"
+    CONFORMIDADE: "DEMO"
+FIM_METADADOS
+
+PROCEDIMENTO Principal()
+    INICIO
+        # ---- TEXTO ----
+        VARIAVEL bruto : TEXTO <- "  Sistema Corporativo THZ  "
+        EXIBA "Comprimento: " + TEXTO.comprimento(bruto)
+        EXIBA "Aparado: '" + TEXTO.aparar(bruto) + "'"
+        EXIBA "Maiusculas: " + TEXTO.maiusculas(TEXTO.aparar(bruto))
+        EXIBA "Minusculas: " + TEXTO.minusculas(TEXTO.aparar(bruto))
+        EXIBA "Contém 'THZ'? " + TEXTO.contem(bruto, "THZ")
+        EXIBA "Substituir: " + TEXTO.substituir("a_b_c", "_", "-")
+        EXIBA "Subtexto: " + TEXTO.subtexto("THZ-LANG", 0, 3)
+        EXIBA "Juntar: " + TEXTO.juntar(["THZ", "LANG", "2.3"], ".")
+        EXIBA "Dividir[1]: " + TEXTO.dividir("thz;lang;engine", ";")[1]
+
+        # ---- DATA / DATA_HORA ----
+        VARIAVEL hoje : DATA <- DATA.hoje()
+        EXIBA "Hoje: " + DATA.texto(hoje)
+        EXIBA "Ano/Mês/Dia: " + DATA.ano(hoje) + "/" + DATA.mes(hoje) + "/" + DATA.dia(hoje)
+        EXIBA "Dia da semana (0=dom): " + DATA.diaDaSemana(hoje)
+
+        VARIAVEL vencimento : DATA <- DATA.adicionarDias(hoje, 30)
+        EXIBA "Daqui a 30 dias: " + DATA.texto(vencimento)
+        EXIBA "Diferença: " + DATA.diferencaDias(vencimento, hoje) + " dias"
+
+        VARIAVEL agora : DATA_HORA <- DATA.agora()
+        EXIBA "Agora: " + DATA.texto(agora)
+        VARIAVEL reuniao : DATA_HORA <- DATA.criarDataHora(2026, 9, 1, 14, 30)
+        EXIBA "Reunião: " + DATA.texto(reuniao)
+        EXIBA "Reunião +2h: " + DATA.texto(DATA.adicionarHoras(reuniao, 2))
+    FIM
+
+FIM_PROGRAMA

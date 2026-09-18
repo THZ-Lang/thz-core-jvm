@@ -1,0 +1,66 @@
+PROGRAMA LiquidacaoIdempotente
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Financeiro"
+    SUBDOMINIO: "Pagamentos"
+    CAMADA: "Dominio"
+    VERSAO: "2.3.0"
+    AUTOR: "THZ Architect"
+    SLO_LATENCIA_MAXIMA: "10ms"
+    CONFORMIDADE: "ISO_10967", "LGPD", "SOX_404"
+FIM_METADADOS
+
+# ============================================================
+# Regra de Negócio com Garantia Formal de Idempotência
+# ============================================================
+
+REGRA_NEGOCIO LiquidacaoPagamentoPix
+    IDENTIFICADOR_REGRA: "RN-PIX-IDEMP-01"
+    RASTREIO_REQUISITO: "REQ-PAG-2026-889"
+    DESCRICAO: "Processamento de liquidacao PIX com idempotencia garantida em O(1)"
+    IDEMPOTENTE: VERDADEIRO
+    CHAVE_IDEMPOTENCIA: "PIX-E2E-IDEMP-KEY-9988"
+
+    CONTRATO_ENTRADA
+        EXIGE valor_principal > 0.00
+        EXIGE taxa_servico >= 0.00
+    FIM_CONTRATO_ENTRADA
+
+    CONTRATO_SAIDA
+        GARANTE RESULTADO >= valor_principal
+    FIM_CONTRATO_SAIDA
+
+
+    OPERACAO IDEMPOTENTE ExecutarLiquidacao(valor_principal: DECIMAL(12,2), taxa_servico: DECIMAL(12,2)) : DECIMAL(12,2)
+    INICIO
+        VARIAVEL total_liquidado : DECIMAL(12,2) <- valor_principal + taxa_servico
+        EXIBA " -> Executando liquidacao financeira: " + MATEMATICA.arredondar(total_liquidado, 2)
+        RETORNE total_liquidado
+    FIM
+
+FIM_REGRA_NEGOCIO
+
+# ============================================================
+# Procedimento de Demonstração de Reuso de Idempotência
+# ============================================================
+
+PROCEDIMENTO Principal()
+INICIO
+    EXIBA "=== DEMONSTRACAO DE IDEMPOTENCIA INTELIGENTE THZ-LANG ==="
+    VARIAVEL v : DECIMAL(12,2) <- 1500.00
+    VARIAVEL tx : DECIMAL(12,2) <- 12.50
+
+    EXIBA "1. Primeira chamada transacional (execucao primaria)..."
+    VARIAVEL res1 : DECIMAL(12,2) <- LiquidacaoPagamentoPix.ExecutarLiquidacao(v, tx)
+    EXIBA "   Resultado 1: " + MATEMATICA.arredondar(res1, 2)
+
+    EXIBA "2. Segunda chamada (mesmos parametros e chave - reuso instantaneo em O(1))..."
+    VARIAVEL res2 : DECIMAL(12,2) <- LiquidacaoPagamentoPix.ExecutarLiquidacao(v, tx)
+    EXIBA "   Resultado 2: " + MATEMATICA.arredondar(res2, 2)
+
+    EXIBA "3. Idempotencia validada com sucesso: " + (res1 = res2)
+
+FIM
+
+
+FIM_PROGRAMA

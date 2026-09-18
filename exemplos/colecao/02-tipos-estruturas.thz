@@ -1,0 +1,52 @@
+# 02 — Tipos primitivos e ESTRUTURA
+# Mostra TEXTO, LOGICO, inteiros, DECIMAL, DATA e INVARIANTE.
+# Regra: tipos são validados em tempo de compilação; aritmética decimal usa BigInt escalado.
+
+
+PROGRAMA TiposEstruturas
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Tipos"
+    CAMADA: "Dominio"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "10ms"
+    CONFORMIDADE: "DEMO"
+FIM_METADADOS
+
+ESTRUTURA Pessoa
+    nome      : TEXTO
+    idade     : NATURAL32
+    saldo     : DECIMAL(14, 2)
+    ativo     : LOGICO
+    nascimento: DATA
+    INVARIANTE idade >= 0
+    INVARIANTE saldo >= 0.00
+    INVARIANTE nome <> ""
+FIM_ESTRUTURA
+
+ESTRUTURA Conta
+    titular : TEXTO
+    saldo   : DECIMAL(14, 2)
+    INVARIANTE saldo >= 0.00
+FIM_ESTRUTURA
+
+PROCEDIMENTO Principal()
+    INICIO
+        VARIAVEL p1 : Pessoa <- CRIAR Pessoa(nome: "Ana", idade: 30, saldo: 1234.56, ativo: VERDADEIRO, nascimento: DATA.criar(1994, 5, 12))
+        VARIAVEL p2 : Pessoa <- CRIAR Pessoa(nome: "Bruno", idade: 42, saldo: 0.00, ativo: FALSO, nascimento: DATA.criar(1982, 11, 3))
+        EXIBA "Pessoa 1: " + p1.nome + " | idade=" + p1.idade + " | saldo=" + p1.saldo + " | ativo=" + p1.ativo
+        EXIBA "Pessoa 2: " + p2.nome + " | saldo=" + p2.saldo
+
+        VARIAVEL c1 : Conta <- CRIAR Conta(titular: "Ana", saldo: 1000.00)
+        c1.saldo <- c1.saldo + 250.50
+        EXIBA "Conta " + c1.titular + " saldo atual: " + c1.saldo
+
+        VARIAVEL hoje : DATA <- DATA.hoje()
+        EXIBA "Hoje é: " + DATA.texto(hoje)
+        EXIBA "Nascimento Ana: " + DATA.texto(p1.nascimento)
+        EXIBA "Tipos primitivos OK — invariantes respeitados"
+    FIM
+
+FIM_PROGRAMA

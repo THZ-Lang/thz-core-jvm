@@ -1,0 +1,25 @@
+[
+  {
+    "name": "thz.lang.webview.ThzWebViewBridge",
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "thz.lang.webview.ThzWebViewLauncher",
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "thz.lang.ui.ThzFormWebRenderer",
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "thz.lang.ui.ConversorFormularioUi",
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  }
+]

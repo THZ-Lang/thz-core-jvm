@@ -1,0 +1,43 @@
+
+PROGRAMA AgendaCompromissos
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Produtividade"
+    SUBDOMINIO: "Agenda"
+    CAMADA: "Aplicacao"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "20ms"
+    CONFORMIDADE: "LGPD-Art7"
+FIM_METADADOS
+
+ESTRUTURA Compromisso
+    titulo : TEXTO
+    dataHora : DATA_HORA
+    descricao : TEXTO
+    INVARIANTE titulo <> ""
+FIM_ESTRUTURA
+
+PROCEDIMENTO Listar(agenda: FATIA[Compromisso])
+    INICIO
+        EXIBA "=== Agenda ==="
+        PARA i DE 0 ATE 1
+            VARIAVEL c : Compromisso <- agenda[i]
+            EXIBA TEXTO.juntar(["-", c.titulo, DATA.texto(c.dataHora)], " ")
+            EXIBA "  " + c.descricao
+        FIM_PARA
+    FIM
+
+PROCEDIMENTO Principal()
+    INICIO
+        VARIAVEL agenda : FATIA[Compromisso] <- [CRIAR Compromisso(titulo: "Reuniao Planning", dataHora: DATA.criarDataHora(2026, 8, 24, 14, 0), descricao: "Sprint planning na sala A"), CRIAR Compromisso(titulo: "Entrega Demo", dataHora: DATA.criarDataHora(2026, 8, 25, 9, 30), descricao: "Apresentacao para o cliente")]
+        Listar(agenda)
+        VARIAVEL hoje : DATA <- DATA.hoje()
+        EXIBA "Hoje e: " + DATA.texto(hoje)
+        VARIAVEL texto : TEXTO <- "  thz-lang  "
+        EXIBA "Aparado: '" + TEXTO.aparar(texto) + "'"
+        EXIBA "Maiusculas: " + TEXTO.maiusculas("agenda")
+        EXIBA "Concluidos: 2 compromissos"
+    FIM
+
+FIM_PROGRAMA

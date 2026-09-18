@@ -1,0 +1,58 @@
+
+PROGRAMA ProcessamentoFaturamentoLote
+
+# --- DECLARAÇÕES DE METADADOS ARQUITETURAIS (ISO/IEC/IEEE 42010) ---
+METADADOS_ARQUITETURA
+    DOMINIO: "LogisticaEFaturamento"
+    SUBDOMINIO: "FaturamentoLote"
+    CAMADA: "Dominio"
+    VERSAO: "2.2.0"
+    AUTOR: "Lucas Thomaz"
+    SLO_LATENCIA_MAXIMA: "15ms"
+    CONFORMIDADE: "SOX-404", "LGPD-Art7"
+FIM_METADADOS
+
+# --- MODELO DE DADOS DE ALTA PERFORMANCE (LAYOUT COLUNAR / SIMD) ---
+ESTRUTURA ItemFatura LAYOUT_COLUNAR
+    id_transacao       : UUID
+    codigo_produto     : TEXTO
+    quantidade         : NATURAL32
+    valor_unitario     : DECIMAL(12, 4)
+    aliquota_imposto   : DECIMAL(5, 2)
+    valor_total_liquido: DECIMAL(14, 4)
+
+    # Arquitetura Viva: invariantes validadas a cada mutação/construção.
+    INVARIANTE valor_total_liquido >= 0.0000
+FIM_ESTRUTURA
+
+# --- CONTRATO DE DOMÍNIO E GOVERNANÇA DE REGRAS ---
+REGRA_NEGOCIO CalculoTributarioLote
+    IDENTIFICADOR_REGRA: "BR-FISCAL-2026-08"
+    RASTREIO_REQUISITO: "REQ-FISCAL-9102"
+    DESCRICAO: "Aplica isenção para insumos essenciais e calcula ICMS/PIS/COFINS em lote vetorizado."
+
+    CONTRATO_ENTRADA
+        EXIGE itens.quantidade > 0
+        EXIGE itens.valor_unitario >= 0.0000
+    FIM_CONTRATO_ENTRADA
+
+    CONTRATO_SAIDA
+        GARANTE itens.valor_total_liquido >= 0.0000
+    FIM_CONTRATO_SAIDA
+
+    OPERACAO ProcessarVetorizado(itens: FATIA[ItemFatura]) : DECIMAL(18, 4)
+    INICIO
+        VARIAVEL acumulador_tributos : DECIMAL(18, 4) <- 0.0000
+        VETORIZAR_PARA item EM itens PASSO_SIMD 8
+            VARIAVEL bruto          : DECIMAL(18, 4) <- item.quantidade * item.valor_unitario
+            VARIAVEL fator_aliquota : DECIMAL(18, 4) <- item.aliquota_imposto / 100
+            VARIAVEL imposto_item   : DECIMAL(18, 4) <- bruto * fator_aliquota
+            item.valor_total_liquido <- bruto + imposto_item
+            acumulador_tributos <- acumulador_tributos + imposto_item
+            EXIBA "[ITEM " + item.codigo_produto + "] Qtd: " + item.quantidade + " | Unit: R$ " + item.valor_unitario + " | Total Liq: R$ " + item.valor_total_liquido
+        FIM_PARA
+        RETORNE acumulador_tributos
+    FIM
+FIM_REGRA_NEGOCIO
+
+FIM_PROGRAMA

@@ -1,0 +1,74 @@
+# 09 — Arena de memória (USAR_BLOCO_MEMORIA)
+# USAR_BLOCO_MEMORIA delimita alocações em arena: tudo que o bloco aloca
+# é descartado em O(1) ao sair do escopo (FIM_BLOCO_MEMORIA).
+
+
+PROGRAMA BlocoMemoria
+
+METADADOS_ARQUITETURA
+    DOMINIO: "Exemplos"
+    SUBDOMINIO: "Runtime"
+    CAMADA: "Infra"
+    VERSAO: "1.0.0"
+    AUTOR: "THZ-LANG"
+    SLO_LATENCIA_MAXIMA: "15ms"
+    CONFORMIDADE: "DEMO"
+FIM_METADADOS
+
+ESTRUTURA Leitura
+    sensor : TEXTO
+    valor  : DECIMAL(10, 2)
+    INVARIANTE valor >= 0.00
+FIM_ESTRUTURA
+
+REGRA_NEGOCIO Telemetria
+    IDENTIFICADOR_REGRA: "BR-IOT-2026-01"
+    RASTREIO_REQUISITO: "REQ-IOT-0001"
+    DESCRICAO: "Processa leituras em lote dentro de arena e devolve média."
+
+    CONTRATO_ENTRADA
+        EXIGE leituras.valor >= 0.00
+    FIM_CONTRATO_ENTRADA
+
+    CONTRATO_SAIDA
+        GARANTE leituras.valor >= 0.00
+    FIM_CONTRATO_SAIDA
+
+    OPERACAO MediaLeituras(leituras: FATIA[Leitura]) : DECIMAL(12, 2)
+    INICIO
+        VARIAVEL soma : DECIMAL(12, 2) <- 0.00
+        VETORIZAR_PARA l EM leituras PASSO_SIMD 8
+            soma <- soma + l.valor
+        FIM_PARA
+        # Lote de demonstração com 3 leituras
+        RETORNE soma / 3
+    FIM
+FIM_REGRA_NEGOCIO
+
+PROCEDIMENTO Principal()
+    INICIO
+        # Toda memória alocada aqui vive só até FIM_BLOCO_MEMORIA.
+        USAR_BLOCO_MEMORIA arenaTelemetria
+            VARIAVEL lote : FATIA[Leitura] <- [
+                CRIAR Leitura(sensor: "temp-A", valor: 22.50),
+                CRIAR Leitura(sensor: "temp-B", valor: 24.00),
+                CRIAR Leitura(sensor: "press-C", valor: 1013.25)
+            ]
+
+            VARIAVEL soma : DECIMAL(14, 2) <- 0.00
+            PARA i DE 0 ATE 2
+                # Acesso canônico: indexe primeiro, depois acesse campos
+                VARIAVEL l : Leitura <- lote[i]
+                soma <- soma + l.valor
+                EXIBA "Leitura " + i + ": " + l.sensor + " = " + l.valor
+            FIM_PARA
+
+            VARIAVEL media : DECIMAL(12, 2) <- soma / 3
+            EXIBA "Média aritmética: " + media
+            EXIBA "Total bruto: " + soma
+        FIM_BLOCO_MEMORIA
+
+        EXIBA "Arena 'arenaTelemetria' liberada — descarte O(1) ✓"
+    FIM
+
+FIM_PROGRAMA
