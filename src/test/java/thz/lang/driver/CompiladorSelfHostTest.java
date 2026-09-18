@@ -28,7 +28,7 @@ public class CompiladorSelfHostTest {
         if (!Files.exists(p)) {
             p = Paths.get("JVM", "thz-core-jvm", "exemplos", "compilador", caminhoRelativo);
         }
-        assertTrue(Files.exists(p), "Arquivo do compilador nÃ£o encontrado: " + caminhoRelativo);
+        assertTrue(Files.exists(p), "Arquivo do compilador não encontrado: " + caminhoRelativo);
         return Files.readString(p);
     }
 
@@ -73,7 +73,7 @@ public class CompiladorSelfHostTest {
     }
 
     @Test
-    @DisplayName("compilador/driver.thz deve orquestrar a execuÃ§Ã£o do compilador self-hosted com sucesso")
+    @DisplayName("compilador/driver.thz deve orquestrar a execução do compilador self-hosted com sucesso")
     void testDriverSelfHost() throws IOException {
         String src = lerFonte("driver.thz");
         var res = ThzCompilerDriver.compilarOuExecutar(src, ThzCompilerDriver.Alvo.EXECUCAO_JVM, false, Map.of("tamanho_fonte", ValorThz.INTEIRO(100)));
@@ -81,13 +81,13 @@ public class CompiladorSelfHostTest {
     }
 
     @Test
-    @DisplayName("compilador/driver.thz deve gerar cÃ³digo LLVM IR nativo sem erros")
+    @DisplayName("compilador/driver.thz deve gerar código LLVM IR nativo sem erros")
     void testDriverLlvmIrGeneration() throws IOException {
         String src = lerFonte("driver.thz");
         var res = ThzCompilerDriver.compilarOuExecutar(src, ThzCompilerDriver.Alvo.LLVM, false, Map.of());
         assertTrue(res.sucesso(), "driver.thz deve gerar LLVM IR com sucesso: " + res.erros());
         assertNotNull(res.saidaTexto());
-        assertTrue(res.saidaTexto().contains("ModuleID"), "SaÃ­da LLVM IR deve conter ModuleID");
+        assertTrue(res.saidaTexto().contains("ModuleID"), "Saída LLVM IR deve conter ModuleID");
     }
 }
 

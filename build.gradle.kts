@@ -1,9 +1,9 @@
-﻿// ==============================================================================
-// thz-core â€” NÃºcleo da linguagem THZ-LANG (Core/Stdlib)
+// ==============================================================================
+// thz-core — Núcleo da linguagem THZ-LANG (Core/Stdlib)
 //
-// RepositÃ³rio independente: https://github.com/<org>/thz-core
+// Repositório independente: https://github.com/<org>/thz-core
 // Consumido por thz-cli e thz-gui via Gradle Composite Build (dev) ou
-// artefato publicado (CI): thz.lang:thz-core:<versÃ£o>
+// artefato publicado (CI): thz.lang:thz-core:<versão>
 // ==============================================================================
 
 plugins {
@@ -30,7 +30,7 @@ java {
 }
 
 dependencies {
-    // Motor de Documentos (PDF, XLSX, DOCX) â€” capacidade de stdlib DOCUMENTO.*
+    // Motor de Documentos (PDF, XLSX, DOCX) — capacidade de stdlib DOCUMENTO.*
     implementation("org.apache.poi:poi-ooxml:5.3.0")
     implementation("com.github.librepdf:openpdf:2.0.3")
     implementation("org.apache.logging.log4j:log4j-api:2.23.1")
@@ -39,7 +39,7 @@ dependencies {
     // Banco de Dados Local (SQLite JDBC)
     implementation("org.xerial:sqlite-jdbc:3.47.1.0")
 
-    // Criptografia AvanÃ§ada (Argon2id, AES-XTS, ChaCha20)
+    // Criptografia Avançada (Argon2id, AES-XTS, ChaCha20)
     implementation("org.bouncycastle:bcprov-jdk18on:1.79")
 
     // Testes Automatizados
@@ -80,7 +80,7 @@ publishing {
             from(components["java"])
             pom {
                 name.set("THZ-LANG Core")
-                description.set("NÃºcleo da linguagem THZ-LANG: lexer, parser, semÃ¢ntico, interpretador, runtime decimal exato, SIMD, IR e governanÃ§a.")
+                description.set("Núcleo da linguagem THZ-LANG: lexer, parser, semântico, interpretador, runtime decimal exato, SIMD, IR e governança.")
             }
         }
     }
