@@ -336,7 +336,17 @@ public final class GeradorIr {
         sb.append("declare void @thz_exiba_i32(i32 %val)\n");
         sb.append("declare void @thz_exiba_bool(i1 %val)\n");
         sb.append("declare void @thz_exiba_i128(i128 %val, i32 %scale)\n");
+        sb.append("declare ptr @thz_str_concat(ptr %a, ptr %b)\n");
+        sb.append("declare ptr @thz_substring(ptr %s, i32 %inicio, i32 %len)\n");
+        sb.append("declare i32 @thz_tamanho_str(ptr %s)\n");
+        sb.append("declare ptr @thz_decimal_para_str(i128 %val, i32 %scale)\n");
+        sb.append("declare ptr @thz_i64_para_str(i64 %val)\n");
+        sb.append("declare ptr @thz_tela_renderizar_formulario(ptr %form, ptr %titulo)\n");
         sb.append("declare void @thz_renderizar_tela(ptr %titulo, ptr %conteudo)\n\n");
+
+
+
+
 
         // Identifica se é um módulo GUI ou de Formulário
         boolean isGuiModule = ast.nome().toLowerCase().contains("gui") ||
@@ -506,7 +516,7 @@ public final class GeradorIr {
                             sb.append(mapearTipoLlvm(p.tipo())).append(" %").append(p.nome());
                         }
                         sb.append(") {\nentry:\n");
-                        EmissorAotContexto ctx = new EmissorAotContexto(sb, mapaStringGlobal, ast);
+                        EmissorAotContexto ctx = new EmissorAotContexto(sb, mapaStringGlobal, ast, tipoRet);
                         for (ParametroOperacaoAst p : op.parametros()) {
                             String ptrParam = "%var." + p.nome();
                             String tipoParam = mapearTipoLlvm(p.tipo());
@@ -519,7 +529,8 @@ public final class GeradorIr {
                             if (tipoRet.equals("void")) {
                                 sb.append("  ret void\n");
                             } else {
-                                sb.append("  ret ").append(tipoRet).append(" 0\n");
+                                String retDefault = tipoRet.equals("ptr") ? "null" : "0";
+                                sb.append("  ret ").append(tipoRet).append(" ").append(retDefault).append("\n");
                             }
                         }
                         sb.append("}\n\n");
@@ -541,7 +552,22 @@ public final class GeradorIr {
                         for (RegraNegocioAst r : ast.regras()) {
                             if (r.operacoes() != null) {
                                 for (OperacaoAst op : r.operacoes()) {
-                                    sb.append("  call void @").append(r.nome()).append("_").append(op.nome()).append("()\n");
+                                    String tipoRet = op.tipoRetorno() != null ? mapearTipoLlvm(op.tipoRetorno()) : "void";
+                                    StringBuilder argsStr = new StringBuilder();
+                                    if (op.parametros() != null) {
+                                        for (int i = 0; i < op.parametros().size(); i++) {
+                                            if (i > 0) argsStr.append(", ");
+                                            ParametroOperacaoAst p = op.parametros().get(i);
+                                            String pTipo = mapearTipoLlvm(p.tipo());
+                                            String defaultVal = pTipo.equals("ptr") ? "null" : (pTipo.equals("i1") ? "0" : "0");
+                                            argsStr.append(pTipo).append(" ").append(defaultVal);
+                                        }
+                                    }
+                                    if (tipoRet.equals("void")) {
+                                        sb.append("  call void @").append(r.nome()).append("_").append(op.nome()).append("(").append(argsStr).append(")\n");
+                                    } else {
+                                        sb.append("  call ").append(tipoRet).append(" @").append(r.nome()).append("_").append(op.nome()).append("(").append(argsStr).append(")\n");
+                                    }
                                 }
                             }
                         }
@@ -602,7 +628,22 @@ public final class GeradorIr {
                 for (RegraNegocioAst r : ast.regras()) {
                     if (r.operacoes() != null) {
                         for (OperacaoAst op : r.operacoes()) {
-                            sb.append("  call void @").append(r.nome()).append("_").append(op.nome()).append("()\n");
+                            String tipoRet = op.tipoRetorno() != null ? mapearTipoLlvm(op.tipoRetorno()) : "void";
+                            StringBuilder argsStr = new StringBuilder();
+                            if (op.parametros() != null) {
+                                for (int i = 0; i < op.parametros().size(); i++) {
+                                    if (i > 0) argsStr.append(", ");
+                                    ParametroOperacaoAst p = op.parametros().get(i);
+                                    String pTipo = mapearTipoLlvm(p.tipo());
+                                    String defaultVal = pTipo.equals("ptr") ? "null" : (pTipo.equals("i1") ? "0" : "0");
+                                    argsStr.append(pTipo).append(" ").append(defaultVal);
+                                }
+                            }
+                            if (tipoRet.equals("void")) {
+                                sb.append("  call void @").append(r.nome()).append("_").append(op.nome()).append("(").append(argsStr).append(")\n");
+                            } else {
+                                sb.append("  call ").append(tipoRet).append(" @").append(r.nome()).append("_").append(op.nome()).append("(").append(argsStr).append(")\n");
+                            }
                             chamouAlgumaCoisa = true;
                         }
                     }
@@ -699,16 +740,22 @@ public final class GeradorIr {
         final StringBuilder sb;
         final Map<String, String> mapaStringGlobal;
         final ProgramaAst ast;
+        final String tipoRetornoEsperado;
         final Map<String, VariavelLocal> variaveis = new LinkedHashMap<>();
         int regContador = 1;
         int labelContador = 1;
 
         record VariavelLocal(String ptrLlvm, String tipoLlvm) {}
 
-        EmissorAotContexto(StringBuilder sb, Map<String, String> mapaStringGlobal, ProgramaAst ast) {
+        EmissorAotContexto(StringBuilder sb, Map<String, String> mapaStringGlobal, ProgramaAst ast, String tipoRetornoEsperado) {
             this.sb = sb;
             this.mapaStringGlobal = mapaStringGlobal;
             this.ast = ast;
+            this.tipoRetornoEsperado = tipoRetornoEsperado != null ? tipoRetornoEsperado : "void";
+        }
+
+        EmissorAotContexto(StringBuilder sb, Map<String, String> mapaStringGlobal, ProgramaAst ast) {
+            this(sb, mapaStringGlobal, ast, "void");
         }
 
         String novoReg() {
@@ -749,7 +796,35 @@ public final class GeradorIr {
                               .append(", ptr ").append(var.ptrLlvm()).append("\n");
                         return new ResultadoLlvm(reg, var.tipoLlvm());
                     }
-                    return new ResultadoLlvm("%" + nome, "i64");
+                    if (ctx.ast != null && ctx.ast.enumeracoes() != null) {
+                        for (thz.lang.ast.EnumeracaoAst en : ctx.ast.enumeracoes()) {
+                            int idx = en.membros().indexOf(nome);
+                            if (idx >= 0) {
+                                return new ResultadoLlvm(String.valueOf(idx), "i32");
+                            }
+                        }
+                    }
+                    if (ctx.mapaStringGlobal.containsKey(nome)) {
+                        return new ResultadoLlvm(ctx.mapaStringGlobal.get(nome), "ptr");
+                    }
+                    return new ResultadoLlvm("0", "i64");
+                }
+                if (ac.caminho().size() == 2) {
+                    String enumNome = ac.caminho().get(0);
+                    String membro = ac.caminho().get(1);
+                    if (ctx.ast != null && ctx.ast.enumeracoes() != null) {
+                        for (thz.lang.ast.EnumeracaoAst en : ctx.ast.enumeracoes()) {
+                            if (en.nome().equals(enumNome)) {
+                                int idx = en.membros().indexOf(membro);
+                                if (idx >= 0) {
+                                    return new ResultadoLlvm(String.valueOf(idx), "i32");
+                                }
+                            }
+                        }
+                    }
+                }
+                if (ctx.tipoRetornoEsperado != null && ctx.tipoRetornoEsperado.equals("i128")) {
+                    return new ResultadoLlvm("0", "i128");
                 }
                 return new ResultadoLlvm("0", "i64");
             }
@@ -786,7 +861,17 @@ public final class GeradorIr {
                 String tipoComum = esq.tipo();
                 String valEsq = esq.valor();
                 String valDir = dir.valor();
-                if (esq.tipo().equals("i32") && dir.tipo().equals("i64")) {
+                if ((esq.tipo().equals("i32") || esq.tipo().equals("i64")) && dir.tipo().equals("i128")) {
+                    String r = ctx.novoReg();
+                    ctx.sb.append("  ").append(r).append(" = sext ").append(esq.tipo()).append(" ").append(valEsq).append(" to i128\n");
+                    valEsq = r;
+                    tipoComum = "i128";
+                } else if (esq.tipo().equals("i128") && (dir.tipo().equals("i32") || dir.tipo().equals("i64"))) {
+                    String r = ctx.novoReg();
+                    ctx.sb.append("  ").append(r).append(" = sext ").append(dir.tipo()).append(" ").append(valDir).append(" to i128\n");
+                    valDir = r;
+                    tipoComum = "i128";
+                } else if (esq.tipo().equals("i32") && dir.tipo().equals("i64")) {
                     String r = ctx.novoReg();
                     ctx.sb.append("  ").append(r).append(" = sext i32 ").append(valEsq).append(" to i64\n");
                     valEsq = r;
@@ -814,6 +899,14 @@ public final class GeradorIr {
                     return new ResultadoLlvm(reg, "i1");
                 }
 
+                if (tipoComum.equals("ptr") && op.equals("+")) {
+                    if ("0".equals(valEsq) || valEsq.isEmpty()) valEsq = "null";
+                    if ("0".equals(valDir) || valDir.isEmpty()) valDir = "null";
+                    String reg = ctx.novoReg();
+                    ctx.sb.append("  ").append(reg).append(" = call ptr @thz_str_concat(ptr ").append(valEsq).append(", ptr ").append(valDir).append(")\n");
+                    return new ResultadoLlvm(reg, "ptr");
+                }
+
                 String arith = switch (op) {
                     case "+" -> "add";
                     case "-" -> "sub";
@@ -828,13 +921,43 @@ public final class GeradorIr {
             }
             case ExprAst.Chamada ch -> {
                 String nomeFn = String.join(".", ch.caminho());
-                String llvmFn = nomeFn.equals("main") ? "thz_fn_main" : nomeFn;
+                String llvmFn = nomeFn.equals("main") ? "thz_fn_main" : nomeFn.replace(".", "_");
                 String tipoRet = "i64";
-                if (ctx.ast != null && ctx.ast.funcoes() != null) {
-                    for (FuncaoAst f : ctx.ast.funcoes()) {
-                        if (f.nome().equals(nomeFn)) {
-                            tipoRet = mapearTipoLlvm(f.tipoRetorno());
-                            break;
+                if (nomeFn.equals("TEXTO.subtexto") || nomeFn.equals("TEXTO_subtexto") || nomeFn.equals("subtexto")) {
+                    llvmFn = "thz_substring";
+                    tipoRet = "ptr";
+                } else if (nomeFn.equals("TEXTO.comprimento") || nomeFn.equals("TEXTO_comprimento") || nomeFn.equals("comprimento")) {
+                    llvmFn = "thz_tamanho_str";
+                    tipoRet = "i32";
+                } else if (nomeFn.equals("TEXTO.deDecimal") || nomeFn.equals("TEXTO_deDecimal")) {
+                    llvmFn = "thz_decimal_para_str";
+                    tipoRet = "ptr";
+                } else if (nomeFn.equals("TEXTO.deInteiro") || nomeFn.equals("TEXTO_deInteiro")) {
+                    llvmFn = "thz_i64_para_str";
+                    tipoRet = "ptr";
+                } else if (nomeFn.equals("TELA.renderizarFormulario") || nomeFn.equals("TELA_renderizarFormulario")) {
+                    llvmFn = "thz_tela_renderizar_formulario";
+                    tipoRet = "ptr";
+                } else if (ctx.ast != null) {
+                    if (ctx.ast.funcoes() != null) {
+                        for (FuncaoAst f : ctx.ast.funcoes()) {
+                            if (f.nome().equals(nomeFn)) {
+                                tipoRet = mapearTipoLlvm(f.tipoRetorno());
+                                break;
+                            }
+                        }
+                    }
+                    if (ctx.ast.regras() != null) {
+                        for (RegraNegocioAst r : ctx.ast.regras()) {
+                            if (r.operacoes() != null) {
+                                for (OperacaoAst op : r.operacoes()) {
+                                    if (op.nome().equals(nomeFn) || (r.nome() + "." + op.nome()).equals(nomeFn)) {
+                                        llvmFn = r.nome() + "_" + op.nome();
+                                        tipoRet = op.tipoRetorno() != null ? mapearTipoLlvm(op.tipoRetorno()) : "void";
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -843,13 +966,42 @@ public final class GeradorIr {
                     for (int i = 0; i < ch.argumentos().size(); i++) {
                         if (i > 0) callArgs.append(", ");
                         ResultadoLlvm argRes = avaliarExpr(ch.argumentos().get(i), ctx);
-                        callArgs.append(argRes.tipo()).append(" ").append(argRes.valor());
+                        String valArg = argRes.valor();
+                        String tipoArg = argRes.tipo();
+                        if (tipoArg.equals("ptr") && ("0".equals(valArg) || valArg.isEmpty())) {
+                            valArg = "null";
+                        }
+                        if (llvmFn.equals("thz_substring") && i > 0 && tipoArg.equals("i64")) {
+                            String regTrunc = ctx.novoReg();
+                            ctx.sb.append("  ").append(regTrunc).append(" = trunc i64 ").append(valArg).append(" to i32\n");
+                            valArg = regTrunc;
+                            tipoArg = "i32";
+                        }
+                        if (llvmFn.equals("thz_decimal_para_str") && (tipoArg.equals("i32") || tipoArg.equals("i64"))) {
+                            String regExt = ctx.novoReg();
+                            ctx.sb.append("  ").append(regExt).append(" = sext ").append(tipoArg).append(" ").append(valArg).append(" to i128\n");
+                            valArg = regExt;
+                            tipoArg = "i128";
+                        }
+                        callArgs.append(tipoArg).append(" ").append(valArg);
                     }
+                }
+                if (llvmFn.equals("thz_decimal_para_str") && (ch.argumentos() == null || ch.argumentos().size() == 1)) {
+                    callArgs.append(", i32 2");
                 }
                 String reg = ctx.novoReg();
                 ctx.sb.append("  ").append(reg).append(" = call ").append(tipoRet).append(" @").append(llvmFn)
                       .append("(").append(callArgs).append(")\n");
                 return new ResultadoLlvm(reg, tipoRet);
+            }
+            case ExprAst.Nulo n -> {
+                return new ResultadoLlvm("null", "ptr");
+            }
+            case ExprAst.CriarRegistro cr -> {
+                String ptr = ctx.novoReg();
+                String tipoStruct = "%struct." + cr.nomeEstrutura();
+                ctx.sb.append("  ").append(ptr).append(" = alloca ").append(tipoStruct).append("\n");
+                return new ResultadoLlvm(ptr, "ptr");
             }
             default -> {
                 return new ResultadoLlvm("0", "i64");
@@ -885,10 +1037,19 @@ public final class GeradorIr {
                 ctx.variaveis.put(dv.nome(), new EmissorAotContexto.VariavelLocal(ptrVar, tipo));
                 if (init != null) {
                     String valInit = init.valor();
-                    if (!init.tipo().equals(tipo) && init.tipo().equals("i32") && tipo.equals("i64")) {
-                        String regConv = ctx.novoReg();
-                        ctx.sb.append("  ").append(regConv).append(" = sext i32 ").append(valInit).append(" to i64\n");
-                        valInit = regConv;
+                    if (!init.tipo().equals(tipo)) {
+                        if (init.tipo().equals("i32") && tipo.equals("i64")) {
+                            String regConv = ctx.novoReg();
+                            ctx.sb.append("  ").append(regConv).append(" = sext i32 ").append(valInit).append(" to i64\n");
+                            valInit = regConv;
+                        } else if ((init.tipo().equals("i32") || init.tipo().equals("i64")) && tipo.equals("i128")) {
+                            String regConv = ctx.novoReg();
+                            ctx.sb.append("  ").append(regConv).append(" = sext ").append(init.tipo()).append(" ").append(valInit).append(" to i128\n");
+                            valInit = regConv;
+                        }
+                    }
+                    if (tipo.equals("ptr") && ("0".equals(valInit) || valInit.isEmpty())) {
+                        valInit = "null";
                     }
                     ctx.sb.append("  store ").append(tipo).append(" ").append(valInit).append(", ptr ").append(ptrVar).append("\n");
                 }
@@ -901,10 +1062,19 @@ public final class GeradorIr {
                     if (var != null) {
                         ResultadoLlvm val = avaliarExpr(at.expressao(), ctx);
                         String valFinal = val.valor();
-                        if (!val.tipo().equals(var.tipoLlvm()) && val.tipo().equals("i32") && var.tipoLlvm().equals("i64")) {
-                            String regConv = ctx.novoReg();
-                            ctx.sb.append("  ").append(regConv).append(" = sext i32 ").append(valFinal).append(" to i64\n");
-                            valFinal = regConv;
+                        if (!val.tipo().equals(var.tipoLlvm())) {
+                            if (val.tipo().equals("i32") && var.tipoLlvm().equals("i64")) {
+                                String regConv = ctx.novoReg();
+                                ctx.sb.append("  ").append(regConv).append(" = sext i32 ").append(valFinal).append(" to i64\n");
+                                valFinal = regConv;
+                            } else if ((val.tipo().equals("i32") || val.tipo().equals("i64")) && var.tipoLlvm().equals("i128")) {
+                                String regConv = ctx.novoReg();
+                                ctx.sb.append("  ").append(regConv).append(" = sext ").append(val.tipo()).append(" ").append(valFinal).append(" to i128\n");
+                                valFinal = regConv;
+                            }
+                        }
+                        if (var.tipoLlvm().equals("ptr") && ("0".equals(valFinal) || valFinal.isEmpty())) {
+                            valFinal = "null";
                         }
                         ctx.sb.append("  store ").append(var.tipoLlvm()).append(" ").append(valFinal).append(", ptr ").append(var.ptrLlvm()).append("\n");
                     }
@@ -1023,7 +1193,25 @@ public final class GeradorIr {
             }
             case ComandoAst.Retorne r -> {
                 ResultadoLlvm res = avaliarExpr(r.expressao(), ctx);
-                ctx.sb.append("  ret ").append(res.tipo()).append(" ").append(res.valor()).append("\n");
+                String valRet = res.valor();
+                String tipoRet = res.tipo();
+                if (ctx.tipoRetornoEsperado != null && !ctx.tipoRetornoEsperado.equals(tipoRet) && !ctx.tipoRetornoEsperado.equals("void")) {
+                    if (tipoRet.equals("i32") && ctx.tipoRetornoEsperado.equals("i64")) {
+                        String rConv = ctx.novoReg();
+                        ctx.sb.append("  ").append(rConv).append(" = sext i32 ").append(valRet).append(" to i64\n");
+                        valRet = rConv;
+                        tipoRet = "i64";
+                    } else if ((tipoRet.equals("i32") || tipoRet.equals("i64")) && ctx.tipoRetornoEsperado.equals("i128")) {
+                        String rConv = ctx.novoReg();
+                        ctx.sb.append("  ").append(rConv).append(" = sext ").append(tipoRet).append(" ").append(valRet).append(" to i128\n");
+                        valRet = rConv;
+                        tipoRet = "i128";
+                    }
+                }
+                if (tipoRet.equals("ptr") && ("0".equals(valRet) || valRet.isEmpty())) {
+                    valRet = "null";
+                }
+                ctx.sb.append("  ret ").append(tipoRet).append(" ").append(valRet).append("\n");
                 return true;
             }
             case ComandoAst.Chamada ch -> {
