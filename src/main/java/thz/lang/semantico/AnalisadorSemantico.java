@@ -753,6 +753,10 @@ public final class AnalisadorSemantico {
                 }
             }
         }
+        if (nomeQ.regionMatches(true, 0, "COBOL.", 0, 6)) {
+            for (ExprAst a : expr.argumentos()) inferir(a, escopo);
+            return TIPO_NULO;
+        }
         erros.add(new ErroSemantico(expr.linha(), expr.coluna(), "Chamada desconhecida: '" + nomeQ + "'."));
         for (ExprAst a : expr.argumentos()) inferir(a, escopo);
         return null;

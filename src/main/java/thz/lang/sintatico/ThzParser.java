@@ -69,6 +69,8 @@ public class ThzParser {
         List<ProcedimentoAst> procedimentos = new ArrayList<>();
         List<FuncaoAst> funcoes = new ArrayList<>();
         List<String> blocosRust = new ArrayList<>();
+        List<String> blocosCobol = new ArrayList<>();
+        List<String> importacoesCopybook = new ArrayList<>();
 
         // Pragma opcional de compatibilidade: VERSAO_LINGUAGEM "2.4"
         if (match(TokenType.VERSAO_LINGUAGEM)) {
@@ -122,6 +124,10 @@ public class ThzParser {
                 metadados = parseMetadados();
             } else if (match(TokenType.BLOCO_NATIVO_RUST)) {
                 blocosRust.add(parseBlocoNativoRust());
+            } else if (match(TokenType.BLOCO_COBOL)) {
+                blocosCobol.add(parseBlocoCobol());
+            } else if (match(TokenType.IMPORTAR_COPYBOOK)) {
+                importacoesCopybook.add(parseImportacaoCopybook());
             } else if (match(TokenType.ESTRUTURA)) {
                 estruturas.add(parseEstrutura());
             } else if (match(TokenType.ENUMERACAO)) {
@@ -143,7 +149,7 @@ public class ThzParser {
             consume(terminadorEsperado, "Esperado '" + tipoModulo.terminadorPadrao() + "' encerrando o bloco " + tipoModulo.descricao() + ".");
         }
 
-        return new ProgramaAst(tipoModulo, nome, versaoLinguagem, importacoes, metadados, estruturas, enumeracoes, regras, procedimentos, dialeto, blocosRust, funcoes);
+        return new ProgramaAst(tipoModulo, nome, versaoLinguagem, importacoes, metadados, estruturas, enumeracoes, regras, procedimentos, dialeto, blocosRust, funcoes, blocosCobol, importacoesCopybook);
     }
 
     private String parseBlocoNativoRust() {
@@ -153,6 +159,20 @@ public class ThzParser {
         }
         consume(TokenType.FIM_BLOCO_NATIVO, "Esperado 'FIM_BLOCO_NATIVO' para encerrar o bloco de código Rust.");
         return codigo;
+    }
+
+    private String parseBlocoCobol() {
+        String codigo = "";
+        if (check(TokenType.STRING_LITERAL)) {
+            codigo = advance().value();
+        }
+        consume(TokenType.FIM_BLOCO_COBOL, "Esperado 'FIM_BLOCO_COBOL' para encerrar o bloco de código COBOL.");
+        return codigo;
+    }
+
+    private String parseImportacaoCopybook() {
+        Token caminho = consume(TokenType.STRING_LITERAL, "Esperado caminho do arquivo Copybook entre aspas após 'IMPORTAR_COPYBOOK'.");
+        return caminho.value();
     }
 
     private ImportacaoAst parseImportacao() {
@@ -167,7 +187,7 @@ public class ThzParser {
 
     private void erroDeclaracaoInvalida(TipoModulo tipoModulo) {
         Token token = peek();
-        throw new RuntimeException("[Erro Sintático][Linha " + token.line() + ":" + token.column() + "] Declaração não reconhecida no nível do módulo. Esperados 'IMPORTAR', 'METADADOS_ARQUITETURA', 'ESTRUTURA', 'ENUMERACAO', 'REGRA_NEGOCIO', 'PROCEDIMENTO', 'FUNCAO' ou '" + tipoModulo.terminadorPadrao() + "'. (Encontrado: '" + token.value() + "')");
+        throw new RuntimeException("[Erro Sintático][Linha " + token.line() + ":" + token.column() + "] Declaração não reconhecida no nível do módulo. Esperados 'IMPORTAR', 'METADADOS_ARQUITETURA', 'BLOCO_COBOL', 'IMPORTAR_COPYBOOK', 'ESTRUTURA', 'ENUMERACAO', 'REGRA_NEGOCIO', 'PROCEDIMENTO', 'FUNCAO' ou '" + tipoModulo.terminadorPadrao() + "'. (Encontrado: '" + token.value() + "')");
     }
 
     /* ============================================================

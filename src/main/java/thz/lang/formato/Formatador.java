@@ -301,6 +301,22 @@ public final class Formatador {
             out.add(en ? "END_METADATA" : "FIM_METADADOS"); out.add("");
         }
 
+        if (ast.importacoesCopybook() != null) {
+            for (String cpy : ast.importacoesCopybook()) {
+                out.add((en ? "IMPORT_COPYBOOK \"" : "IMPORTAR_COPYBOOK \"") + cpy + "\"");
+                out.add("");
+            }
+        }
+
+        if (ast.blocosCobol() != null) {
+            for (String cobol : ast.blocosCobol()) {
+                out.add(en ? "COBOL_BLOCK" : "BLOCO_COBOL");
+                out.add(linha(cobol, 1));
+                out.add(en ? "END_COBOL_BLOCK" : "FIM_BLOCO_COBOL");
+                out.add("");
+            }
+        }
+
         for (EstruturaAst est : ast.estruturas()) {
             String layout = est.layoutColunar() ? (en ? " COLUMNAR_LAYOUT" : " LAYOUT_COLUNAR") : "";
             out.add((en ? "STRUCTURE " : "ESTRUTURA ") + est.nome() + layout);
