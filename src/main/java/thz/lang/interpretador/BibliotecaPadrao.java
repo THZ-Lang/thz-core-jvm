@@ -78,6 +78,7 @@ public final class BibliotecaPadrao {
         BibliotecaMensageria.registrar(m);
         BibliotecaVetorIa.registrar(m);
         ThzWebViewStdlib.registrar(m);
+        BibliotecaTui.registrar(m);
 
         return new java.util.concurrent.ConcurrentHashMap<>(m);
     }
