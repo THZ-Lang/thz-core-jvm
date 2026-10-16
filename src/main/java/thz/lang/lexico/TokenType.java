@@ -110,6 +110,11 @@ public enum TokenType {
     BLOCO_NATIVO_RUST,
     FIM_BLOCO_NATIVO,
 
+    // Interoperabilidade COBOL Embutido & Copybooks
+    BLOCO_COBOL,
+    FIM_BLOCO_COBOL,
+    IMPORTAR_COPYBOOK,
+
     IDENTIFICADOR,
     STRING_LITERAL,
     NUMERO_LITERAL,

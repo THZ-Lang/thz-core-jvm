@@ -43,8 +43,9 @@ public final class ThzCompilerDriver {
     private ThzCompilerDriver() {}
 
     public static ResultadoCompilacao compilarOuExecutar(String fonte, Alvo alvo, boolean modoEstrito, Map<String, ValorThz> argumentos) {
-        // 1. Léxico & Sintático
-        ThzLexer lexer = new ThzLexer(fonte);
+        // 1. Léxico & Sintático (com suporte a Top-Level Statements modernos)
+        String fonteNormalizada = thz.lang.lexico.SintaxeEnxuta.normalizarTopLevel(fonte);
+        ThzLexer lexer = new ThzLexer(fonteNormalizada);
         List<Token> tokens = lexer.tokenize();
         ProgramaAst ast = new ThzParser(tokens, lexer.getDialeto()).parse();
 

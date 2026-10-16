@@ -9,9 +9,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Dessugariza a forma enxuta baseada em indentação para a gramática estrutural
- * já consumida pelo parser. A transformação mantém uma linha de saída por linha
- * de entrada para preservar os diagnósticos de linha da fonte original.
+ * Dessugariza a forma enxuta baseada em indentação e a sintaxe moderna (.NET 10 / Kotlin / Rust / TS)
+ * para a gramática estrutural da AST da THZ-LANG.
  */
 public final class SintaxeEnxuta {
     private static final Pattern FUNCAO = Pattern.compile("(?i)^(funcao|função)\\s+(.+?)\\s*->\\s*([^:]+):$");
@@ -28,8 +27,6 @@ public final class SintaxeEnxuta {
 
     public static boolean detectar(String fonte) {
         if (fonte == null || fonte.isBlank()) return false;
-        // Se o código utiliza blocos estruturais com chaves fora de literais de texto,
-        // trata-se do paradigma de chaves, dispensando a dessugarização por indentação.
         String semStrings = fonte.replaceAll("\"(\\\\.|[^\"\\\\])*\"", "");
         if (semStrings.contains("{") || semStrings.contains("}")) return false;
 
@@ -40,14 +37,30 @@ public final class SintaxeEnxuta {
             boolean cabecalhoCanonico = Character.isLowerCase(t.codePointAt(0))
                     && (FUNCAO.matcher(t).matches()
                     || baixo.matches("^(programa|biblioteca|extensao|pipeline_dados|ferramenta|teste|tela|estrutura|regra|operacao|procedimento|se|senao|enquanto|para|metadados)\\b.*:$"));
-            return t.contains(":=") || cabecalhoCanonico;
+            return t.contains(":=") || cabecalhoCanonico
+                    || baixo.startsWith("val ") || baixo.startsWith("var ")
+                    || baixo.startsWith("let ") || baixo.startsWith("record ")
+                    || baixo.startsWith("print(") || baixo.startsWith("println(")
+                    || (!possuiCabecalhoModulo(fonte) && !baixo.startsWith("#"));
+        });
+    }
+
+    public static boolean possuiCabecalhoModulo(String fonte) {
+        if (fonte == null || fonte.isBlank()) return false;
+        return fonte.lines().anyMatch(l -> {
+            String s = l.trim().toLowerCase(Locale.ROOT);
+            return s.startsWith("programa ") || s.startsWith("program ")
+                    || s.startsWith("biblioteca ") || s.startsWith("library ")
+                    || s.startsWith("extensao ") || s.startsWith("extension ")
+                    || s.startsWith("teste ") || s.startsWith("test ")
+                    || s.startsWith("tela ") || s.startsWith("screen ")
+                    || s.startsWith("ferramenta ") || s.startsWith("tool ")
+                    || s.startsWith("pipeline_dados ");
         });
     }
 
     /**
-     * Valida a estrutura visual da forma enxuta antes da dessugarização. Isso
-     * evita que um recuo acidental gere uma AST válida, porém diferente da
-     * intenção de quem escreveu o código.
+     * Valida a estrutura visual da forma enxuta antes da dessugarização.
      */
     public static List<DiagnosticoIndentacao> validarIndentacao(String fonte) {
         if (fonte == null || fonte.isBlank() || !possuiCabecalhoEnxuto(fonte)) return List.of();
@@ -107,7 +120,25 @@ public final class SintaxeEnxuta {
         });
     }
 
-    public static String normalizar(String fonte) {
+    public static String limparBom(String fonte) {
+        if (fonte == null) return "";
+        if (fonte.startsWith("\uFEFF")) {
+            return fonte.substring(1);
+        }
+        return fonte;
+    }
+
+    public static String normalizarTopLevel(String fonte) {
+        String limpa = limparBom(fonte);
+        String normalizada = normalizar(limpa);
+        if (!possuiCabecalhoModulo(normalizada)) {
+            return encapsularTopLevel(normalizada);
+        }
+        return normalizada;
+    }
+
+    public static String normalizar(String fonteBruta) {
+        String fonte = limparBom(fonteBruta);
         if (!detectar(fonte)) return fonte;
 
         String[] linhas = fonte.split("\\R", -1);
@@ -142,12 +173,107 @@ public final class SintaxeEnxuta {
             saida.append('\n');
             while (!blocos.isEmpty()) saida.append(blocos.pop().fechamento()).append(' ');
         }
+
         return saida.toString();
     }
 
-    private static String converterLinha(String texto, int recuo, Deque<Bloco> blocos) {
-        if (texto.isBlank() || texto.startsWith("#")) return texto;
+    private static String encapsularTopLevel(String codigoConvertido) {
+        List<String> definicoesModulo = new ArrayList<>();
+        List<String> instrucoesPrincipal = new ArrayList<>();
+
+        String[] linhas = codigoConvertido.split("\\R");
+        boolean dentroDefinicao = false;
+
+        for (String l : linhas) {
+            String trimmed = l.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                continue;
+            }
+            if (trimmed.startsWith("IMPORTAR ") || trimmed.startsWith("IMPORTAR_COPYBOOK ")) {
+                definicoesModulo.add(l);
+                continue;
+            }
+            if (trimmed.startsWith("ESTRUTURA ") || trimmed.startsWith("ENUMERACAO ") || trimmed.startsWith("FUNCAO ") || trimmed.startsWith("REGRA_NEGOCIO ")) {
+                dentroDefinicao = true;
+                definicoesModulo.add(l);
+                if (trimmed.endsWith("FIM_ESTRUTURA") || trimmed.endsWith("FIM_ENUMERACAO") || trimmed.endsWith("FIM_FUNCAO") || trimmed.endsWith("FIM_REGRA_NEGOCIO")) {
+                    dentroDefinicao = false;
+                }
+                continue;
+            }
+            if (dentroDefinicao) {
+                definicoesModulo.add(l);
+                if (trimmed.equals("FIM_ESTRUTURA") || trimmed.equals("FIM_ENUMERACAO") || trimmed.equals("FIM_FUNCAO") || trimmed.equals("FIM_REGRA_NEGOCIO") || trimmed.equals("FIM")) {
+                    dentroDefinicao = false;
+                }
+                continue;
+            }
+            instrucoesPrincipal.add("    " + trimmed);
+        }
+
+        StringBuilder resultado = new StringBuilder("PROGRAMA ScriptAutoExec\n");
+        for (String def : definicoesModulo) {
+            resultado.append(def).append('\n');
+        }
+        if (!instrucoesPrincipal.isEmpty()) {
+            resultado.append("PROCEDIMENTO Principal()\nINICIO\n");
+            for (String inst : instrucoesPrincipal) {
+                resultado.append(inst).append('\n');
+            }
+            resultado.append("FIM\n");
+        }
+        resultado.append("FIM_PROGRAMA\n");
+        return resultado.toString();
+    }
+
+    private static String converterLinha(String textoOriginal, int recuo, Deque<Bloco> blocos) {
+        if (textoOriginal.isBlank() || textoOriginal.startsWith("#")) return textoOriginal;
+
+        // 1. Interpolação de strings: f"Olá {nome}" ou $"Olá {nome}"
+        String texto = dessugarizarInterpolacao(textoOriginal);
         String baixo = texto.toLowerCase(Locale.ROOT);
+
+        // 2. Compact records: record Nome(campo1: Tipo, campo2: Tipo)
+        Matcher recordM = Pattern.compile("^(?i)(?:data\\s+)?record\\s+([\\p{L}_][\\p{L}\\p{N}_]*)\\s*\\((.+)\\)\\s*;?$").matcher(texto);
+        if (recordM.matches()) {
+            String nomeRecord = recordM.group(1);
+            String camposRaw = recordM.group(2);
+            StringBuilder sbRec = new StringBuilder("ESTRUTURA ").append(nomeRecord).append('\n');
+            String[] campos = camposRaw.split(",");
+            for (String c : campos) {
+                String trimmed = c.trim();
+                if (trimmed.contains(":")) {
+                    String[] partes = trimmed.split(":", 2);
+                    sbRec.append("    ").append(partes[0].trim()).append(" : ").append(tipoCanonico(partes[1].trim())).append('\n');
+                } else {
+                    sbRec.append("    ").append(trimmed).append(" : QUALQUER\n");
+                }
+            }
+            sbRec.append("FIM_ESTRUTURA");
+            return sbRec.toString();
+        }
+
+        // 3. val / var / let com tipagem explícita: val x: Int = 10 -> x: Int := 10
+        Matcher valTipado = Pattern.compile("^(?:val|var|let(?:\\s+mut)?)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)\\s*:\\s*([^=]+?)\\s*=\\s*(.+)$").matcher(texto);
+        if (valTipado.matches()) {
+            return valTipado.group(1) + ": " + tipoCanonico(valTipado.group(2)) + " := " + valTipado.group(3);
+        }
+
+        // 4. val / var / let inferido: val x = 10 -> x := 10
+        Matcher valInferido = Pattern.compile("^(?:val|var|let(?:\\s+mut)?)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)\\s*=\\s*(.+)$").matcher(texto);
+        if (valInferido.matches()) {
+            return valInferido.group(1) + " := " + valInferido.group(2);
+        }
+
+        // 5. print / println
+        Matcher printCall = Pattern.compile("^(?i)print(?:ln)?\\s*\\((.*)\\)\\s*;?$").matcher(texto);
+        if (printCall.matches()) {
+            return "EXIBA " + printCall.group(1);
+        }
+        Matcher printStmt = Pattern.compile("^(?i)print(?:ln)?\\s+(.+)$").matcher(texto);
+        if (printStmt.matches()) {
+            return "EXIBA " + printStmt.group(1);
+        }
 
         Matcher funcao = FUNCAO.matcher(texto);
         if (funcao.matches()) {
@@ -230,6 +356,45 @@ public final class SintaxeEnxuta {
         return texto;
     }
 
+    public static String dessugarizarInterpolacao(String texto) {
+        if (texto == null || (!texto.contains("{") && !texto.startsWith("f\"") && !texto.startsWith("$\""))) return texto;
+        Pattern p = Pattern.compile("(?:[fF\\$])?\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"");
+        Matcher m = p.matcher(texto);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String conteudo = m.group(1);
+            if (conteudo.contains("{") && conteudo.contains("}")) {
+                String exprSubstituida = expandirChavesInterpolacao(conteudo);
+                m.appendReplacement(sb, Matcher.quoteReplacement(exprSubstituida));
+            } else {
+                m.appendReplacement(sb, Matcher.quoteReplacement("\"" + conteudo + "\""));
+            }
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
+    private static String expandirChavesInterpolacao(String conteudo) {
+        Pattern pChaves = Pattern.compile("\\{([^}]+)\\}");
+        Matcher m = pChaves.matcher(conteudo);
+        List<String> partes = new ArrayList<>();
+        int lastEnd = 0;
+        while (m.find()) {
+            if (m.start() > lastEnd) {
+                String textoFixo = conteudo.substring(lastEnd, m.start());
+                partes.add("\"" + textoFixo + "\"");
+            }
+            String expr = m.group(1).trim();
+            partes.add(expr);
+            lastEnd = m.end();
+        }
+        if (lastEnd < conteudo.length()) {
+            String textoFixo = conteudo.substring(lastEnd);
+            partes.add("\"" + textoFixo + "\"");
+        }
+        return String.join(" + ", partes);
+    }
+
     private static String abrir(String texto, int recuo, Deque<Bloco> blocos, String palavra, String canonica, String fechamento) {
         blocos.push(new Bloco(recuo, canonica, fechamento));
         return canonica + " " + semCabecalho(texto, palavra);
@@ -242,9 +407,13 @@ public final class SintaxeEnxuta {
     private static String tipoCanonico(String tipo) {
         String t = tipo.strip();
         return t.replaceAll("(?i)\\btexto\\b", "TEXTO")
+                .replaceAll("(?i)\\bstring\\b", "TEXTO")
                 .replaceAll("(?i)\\binteiro\\b", "INTEIRO")
+                .replaceAll("(?i)\\bint\\b", "INTEIRO")
                 .replaceAll("(?i)\\binteiro32\\b", "INTEIRO32")
                 .replaceAll("(?i)\\blogico\\b", "LOGICO")
+                .replaceAll("(?i)\\bbool\\b", "LOGICO")
+                .replaceAll("(?i)\\bboolean\\b", "LOGICO")
                 .replaceAll("(?i)\\bdecimal\\b", "DECIMAL")
                 .replaceAll("(?i)\\bmonetario\\b", "MONETARIO")
                 .replaceAll("(?i)\\bfatia\\b", "FATIA")
