@@ -130,6 +130,13 @@ public final class PalavrasReservadas {
         Map.entry("CODIGO_RUST", new EntradaPalavra(TokenType.BLOCO_NATIVO_RUST, CategoriaPalavra.DECLARACAO)),
         Map.entry("FIM_BLOCO_NATIVO", new EntradaPalavra(TokenType.FIM_BLOCO_NATIVO, CategoriaPalavra.FIM_BLOCO)),
         Map.entry("FIM_NATIVO", new EntradaPalavra(TokenType.FIM_BLOCO_NATIVO, CategoriaPalavra.FIM_BLOCO)),
+        // Interoperabilidade COBOL Embutido & Copybooks
+        Map.entry("BLOCO_COBOL", new EntradaPalavra(TokenType.BLOCO_COBOL, CategoriaPalavra.DECLARACAO)),
+        Map.entry("bloco_cobol", new EntradaPalavra(TokenType.BLOCO_COBOL, CategoriaPalavra.DECLARACAO)),
+        Map.entry("FIM_BLOCO_COBOL", new EntradaPalavra(TokenType.FIM_BLOCO_COBOL, CategoriaPalavra.FIM_BLOCO)),
+        Map.entry("fim_bloco_cobol", new EntradaPalavra(TokenType.FIM_BLOCO_COBOL, CategoriaPalavra.FIM_BLOCO)),
+        Map.entry("IMPORTAR_COPYBOOK", new EntradaPalavra(TokenType.IMPORTAR_COPYBOOK, CategoriaPalavra.DECLARACAO)),
+        Map.entry("importar_copybook", new EntradaPalavra(TokenType.IMPORTAR_COPYBOOK, CategoriaPalavra.DECLARACAO)),
         // Sintaxe Moderna Dual (PT-BR e Universal)
         Map.entry("programa", new EntradaPalavra(TokenType.PROGRAMA, CategoriaPalavra.DECLARACAO)),
         Map.entry("metadados", new EntradaPalavra(TokenType.METADADOS_ARQUITETURA, CategoriaPalavra.DECLARACAO)),
@@ -284,6 +291,13 @@ public final class PalavrasReservadas {
         Map.entry("INLINE_RUST", new EntradaPalavra(TokenType.BLOCO_NATIVO_RUST, CategoriaPalavra.DECLARACAO)),
         Map.entry("END_NATIVE_BLOCK", new EntradaPalavra(TokenType.FIM_BLOCO_NATIVO, CategoriaPalavra.FIM_BLOCO)),
         Map.entry("END_NATIVE", new EntradaPalavra(TokenType.FIM_BLOCO_NATIVO, CategoriaPalavra.FIM_BLOCO)),
+        // Embedded COBOL Interop & Copybooks
+        Map.entry("COBOL_BLOCK", new EntradaPalavra(TokenType.BLOCO_COBOL, CategoriaPalavra.DECLARACAO)),
+        Map.entry("cobol_block", new EntradaPalavra(TokenType.BLOCO_COBOL, CategoriaPalavra.DECLARACAO)),
+        Map.entry("END_COBOL_BLOCK", new EntradaPalavra(TokenType.FIM_BLOCO_COBOL, CategoriaPalavra.FIM_BLOCO)),
+        Map.entry("end_cobol_block", new EntradaPalavra(TokenType.FIM_BLOCO_COBOL, CategoriaPalavra.FIM_BLOCO)),
+        Map.entry("IMPORT_COPYBOOK", new EntradaPalavra(TokenType.IMPORTAR_COPYBOOK, CategoriaPalavra.DECLARACAO)),
+        Map.entry("import_copybook", new EntradaPalavra(TokenType.IMPORTAR_COPYBOOK, CategoriaPalavra.DECLARACAO)),
         // Modern & Universal Keywords EN-US
         Map.entry("program", new EntradaPalavra(TokenType.PROGRAMA, CategoriaPalavra.DECLARACAO)),
         Map.entry("metadata", new EntradaPalavra(TokenType.METADADOS_ARQUITETURA, CategoriaPalavra.DECLARACAO)),

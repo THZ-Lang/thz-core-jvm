@@ -15,7 +15,25 @@ public record ProgramaAst(
         List<ProcedimentoAst> procedimentos,
         DialetoLinguagem dialeto,
         List<String> blocosRust,
-        List<FuncaoAst> funcoes) {
+        List<FuncaoAst> funcoes,
+        List<String> blocosCobol,
+        List<String> importacoesCopybook) {
+
+    public ProgramaAst(
+            TipoModulo tipoModulo,
+            String nome,
+            String versaoLinguagem,
+            List<ImportacaoAst> importacoes,
+            MetadadosArquiteturaAst metadados,
+            List<EstruturaAst> estruturas,
+            List<EnumeracaoAst> enumeracoes,
+            List<RegraNegocioAst> regras,
+            List<ProcedimentoAst> procedimentos,
+            DialetoLinguagem dialeto,
+            List<String> blocosRust,
+            List<FuncaoAst> funcoes) {
+        this(tipoModulo, nome, versaoLinguagem, importacoes, metadados, estruturas, enumeracoes, regras, procedimentos, dialeto, blocosRust, funcoes, List.of(), List.of());
+    }
 
     public ProgramaAst(
             TipoModulo tipoModulo,
@@ -28,7 +46,7 @@ public record ProgramaAst(
             List<RegraNegocioAst> regras,
             List<ProcedimentoAst> procedimentos,
             DialetoLinguagem dialeto) {
-        this(tipoModulo, nome, versaoLinguagem, importacoes, metadados, estruturas, enumeracoes, regras, procedimentos, dialeto, List.of(), List.of());
+        this(tipoModulo, nome, versaoLinguagem, importacoes, metadados, estruturas, enumeracoes, regras, procedimentos, dialeto, List.of(), List.of(), List.of(), List.of());
     }
 
     public ProgramaAst(

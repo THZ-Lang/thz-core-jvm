@@ -140,6 +140,8 @@ public class ThzLexer {
                 tokens.add(tok);
                 if (tok.type() == TokenType.BLOCO_NATIVO_RUST) {
                     tokens.add(readRawNativeBlock());
+                } else if (tok.type() == TokenType.BLOCO_COBOL) {
+                    tokens.add(readRawCobolBlock());
                 }
                 continue;
             }
@@ -162,6 +164,32 @@ public class ThzLexer {
             if (pos + 10 <= input.length()) {
                 String sub = input.substring(pos, pos + 10);
                 if (sub.equalsIgnoreCase("FIM_NATIVO") || sub.equalsIgnoreCase("END_NATIVE")) {
+                    break;
+                }
+            }
+
+            char c = input.charAt(pos);
+            if (c == '\n') {
+                line++;
+                col = 1;
+                pos++;
+                sb.append('\n');
+            } else {
+                sb.append(c);
+                pos++;
+                col++;
+            }
+        }
+        return new Token(TokenType.STRING_LITERAL, sb.toString().trim(), startLine, startCol);
+    }
+
+    private Token readRawCobolBlock() {
+        int startLine = line, startCol = col;
+        StringBuilder sb = new StringBuilder();
+        while (pos < input.length()) {
+            if (pos + 15 <= input.length()) {
+                String sub = input.substring(pos, pos + 15);
+                if (sub.equalsIgnoreCase("FIM_BLOCO_COBOL") || sub.equalsIgnoreCase("END_COBOL_BLOCK")) {
                     break;
                 }
             }

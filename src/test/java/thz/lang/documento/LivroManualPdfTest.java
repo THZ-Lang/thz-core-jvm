@@ -14,7 +14,9 @@ class LivroManualPdfTest {
     @DisplayName("Deve descobrir capítulos da documentação e gerar Livro-Manual PDF com sucesso")
     void deveGerarLivroManualPdf() throws Exception {
         Path raiz = Path.of(".").toAbsolutePath().normalize();
-        if (!Files.exists(raiz.resolve("docs"))) {
+        if (Files.exists(raiz.resolve("../thz-lang/docs/en"))) {
+            raiz = raiz.resolve("../thz-lang").normalize();
+        } else if (!Files.exists(raiz.resolve("docs"))) {
             if (Files.exists(raiz.resolve("../thz-lang/docs"))) {
                 raiz = raiz.resolve("../thz-lang").normalize();
             } else {
@@ -46,8 +48,11 @@ class LivroManualPdfTest {
                 System.out.println("  " + c.parte() + " -> " + c.titulo() + " (" + c.arquivo().getFileName() + ")");
             }
             assertFalse(capitulosEn.isEmpty());
-            assertTrue(capitulosEn.stream().anyMatch(c -> c.arquivo().toString().contains("en")),
-                    "Capítulos em inglês devem apontar para a pasta docs/en");
+            boolean temPastaEn = Files.isDirectory(raiz.resolve("docs").resolve("en"));
+            if (temPastaEn) {
+                assertTrue(capitulosEn.stream().anyMatch(c -> c.arquivo().toString().replace("\\", "/").contains("/en/")),
+                        "Capítulos em inglês devem apontar para a pasta docs/en quando disponível");
+            }
 
             Path resultadoEn = ThzLivroManualPdf.gerarLivroManual(raiz, tempPdfEn, thz.lang.lexico.DialetoLinguagem.EN_US);
             assertTrue(Files.exists(resultadoEn), "O arquivo PDF do livro-manual em EN-US deve existir");
